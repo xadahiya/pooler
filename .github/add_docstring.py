@@ -45,11 +45,6 @@ def addDocstring(filePath):
     for node in code.find_all("def"):
         # Check if function already has a docstring
         if not node.value[0].type == "string":
-            # To avoid OpenAI rate limit (only free trial accounts have rate limit, comment the code below if you have a paid account)
-            # Free trial accounts have a hard cap of 1 request every 20 seconds
-            if time.time() - currentTime < 20:
-                # Sleep for remaining time
-                time.sleep(20 - (time.time() - currentTime) + 1)
 
             # Extract the function code
             function_code = node.dumps()
