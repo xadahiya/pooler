@@ -16,7 +16,7 @@ starting_prompt = dict(
         "role": "system",
         "content": """I will send you a code of Python function. You need to analyse the code and return to me a string that I can use as the docstring for that function, so as 
 to improve my documentation. The functions can also be routes of a Web App, handle those cases too. Donot write any explanations, just send me a string that I can use as the 
-docstring. The language style of the docstring should be simple and easy to understand and it should be in Google Style Multi-Line format""",
+docstring. The language style of the docstring should be simple and easy to understand and it should be in Google Style Multi-Line format. Keep max line length to 80 characters.""",
     }
 )
 history = [
@@ -51,7 +51,7 @@ def addDocstring(filePath):
 
             # Send the function code to ChatGPT API for generating docstring (offcourse use GPT4 API if you hace access to it)
             response = openai.ChatCompletion.create(
-                model="gpt-4",
+                model="gpt-3.5-turbo",
                 temperature=0.2,
                 messages=[
                     *history,
@@ -99,8 +99,7 @@ def addDocstring(filePath):
             filePath,
         ]
     )
-    subprocess.run(["autopep8 --in-place --aggressive", filePath])
-
+    subprocess.run(["autopep8", "--in-place", "--aggressive", filePath])
 
 # Run the function if this script is called directly
 if __name__ == "__main__":
