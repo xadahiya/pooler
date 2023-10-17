@@ -9,6 +9,24 @@ FORMAT = '{time:MMMM D, YYYY > HH:mm:ss!UTC} | {level} | {message}| {extra}'
 
 
 def trace_enabled(_):
+    """
+    Check if trace logging is enabled.
+
+    This function checks the value of the `trace_enabled` setting in the application's
+    configuration. If the value is `True`, it means that trace logging is enabled,
+    otherwise it is disabled.
+
+    Parameters:
+        _: This parameter is not used.
+
+    Returns:
+        bool: True if trace logging is enabled, False otherwise.
+
+    Example:
+        >>> trace_enabled(None)
+        True
+
+    """
     return settings.logs.trace_enabled
 
 

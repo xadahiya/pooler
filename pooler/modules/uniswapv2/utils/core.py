@@ -33,6 +33,32 @@ async def get_pair_reserves(
     rpc_helper: RpcHelper,
     fetch_timestamp=False,
 ):
+    """
+    Fetches the total reserves of a pair contract for a given block range.
+
+    Args:
+        pair_address (str): The address of the pair contract.
+        from_block (int): The starting block number of the range.
+        to_block (int): The ending block number of the range.
+        redis_conn (aioredis.Redis): The Redis connection object.
+        rpc_helper (RpcHelper): The RpcHelper object.
+        fetch_timestamp (bool, optional): Whether to fetch the timestamp of each block. Defaults to False.
+
+    Returns:
+        dict: A dictionary containing the pair reserves for each block in the range. The keys are the block numbers and the values are dictionaries containing the following information:
+            - 'token0': The amount of token0 in the reserves.
+            - 'token1': The amount of token1 in the reserves.
+            - 'token0USD': The USD value of token0 in the reserves.
+            - 'token1USD': The USD value of token1 in the reserves.
+            - 'token0Price': The price of token0 in USD.
+            - 'token1Price': The price of token1 in USD.
+            - 'timestamp': The timestamp of the block (if fetch_timestamp is True).
+
+    Raises:
+        Exception: If there is an error while fetching the block details.
+
+
+    """
     core_logger.debug(
         f'Starting pair total reserves query for: {pair_address}',
     )
@@ -173,12 +199,55 @@ def extract_trade_volume_log(
     token1_price_map,
     block_details_dict,
 ):
+    """
+
+    Extracts the trade volume and other details from a given log event.
+
+    Args:
+        event_name (str): The name of the event.
+        log (dict): The log containing the event data.
+        pair_per_token_metadata (dict): Metadata for the pair per token.
+        token0_price_map (dict): Price map for token0.
+        token1_price_map (dict): Price map for token1.
+        block_details_dict (dict): Dictionary containing block details.
+
+    Returns:
+        tuple: A tuple containing the trade data and the log.
+
+    The function `extract_trade_volume_log` extracts the trade volume and other details from a given log event. It calculates the trade volume in native tokens and USD, as well as the trade fee in USD. The function supports different event types such as 'Swap', 'Mint', and 'Burn'. The trade volume and fee are calculated based on the token amounts and prices provided in the log and the price maps. The function also retrieves additional block details for the log and adds them to the log object. Finally, the function returns a tuple containing the trade data and the updated log.
+
+    Note: This function assumes the availability of the `trade_data` function, which is not provided in the code snippet.
+
+    """
     token0_amount = 0
     token1_amount = 0
     token0_amount_usd = 0
     token1_amount_usd = 0
 
     def token_native_and_usd_amount(token, token_type, token_price_map):
+        """
+
+    Calculates the native token amount and its equivalent USD amount based on the provided token, token type, and token price map.
+
+    Args:
+        token (str): The token symbol or identifier.
+        token_type (str): The type of token.
+        token_price_map (dict): A dictionary mapping block numbers to token prices in USD.
+
+    Returns:
+        tuple: A tuple containing the token amount and its equivalent USD amount.
+
+        The token amount is calculated by dividing the token type value from the log arguments by 10 raised to the power of the token's decimal places.
+
+        The token USD amount is calculated by multiplying the token amount with the corresponding token price from the token price map based on the block number.
+
+        If the token type value is less than or equal to 0, both the token amount and token USD amount will be 0.
+
+    Example:
+        >>> token_native_and_usd_amount('ETH', 'ETH', {12345: 2000})
+        (1.0, 2000.0)
+
+    """
         if log.args.get(token_type) <= 0:
             return 0, 0
 
@@ -295,8 +364,9 @@ def extract_trade_volume_log(
         log,
     )
 
+    # asynchronously get trades on a pair contract
 
-# asynchronously get trades on a pair contract
+
 async def get_pair_trade_volume(
     data_source_contract_address,
     min_chain_height,
@@ -305,6 +375,38 @@ async def get_pair_trade_volume(
     rpc_helper: RpcHelper,
     fetch_timestamp=True,
 ):
+    """
+    Get the trade volume for a pair of tokens within a specified chain height range.
+
+    Args:
+        data_source_contract_address (str): The address of the data source contract.
+        min_chain_height (int): The minimum chain height to fetch block details from.
+        max_chain_height (int): The maximum chain height to fetch block details from.
+        redis_conn (aioredis.Redis): The Redis connection object.
+        rpc_helper (RpcHelper): The RPC helper object.
+        fetch_timestamp (bool, optional): Whether to fetch the timestamp of the block details. Defaults to True.
+
+    Returns:
+        dict: A dictionary containing the trade volume data for the specified pair of tokens within the specified chain height range.
+
+    Raises:
+        Exception: If there is an error while fetching the block details.
+
+    Note:
+        This function fetches the block details, pair metadata, token prices, and logs for swap, mint, and burn events. It then calculates the trade volume for each event type and returns the results.
+
+    Example:
+        ```
+        data_source_contract_address = '0x1234567890abcdef'
+        min_chain_height = 100000
+        max_chain_height = 200000
+        redis_conn = aioredis.Redis(...)
+        rpc_helper = RpcHelper(...)
+        trade_volume = await get_pair_trade_volume(data_source_contract_address, min_chain_height, max_chain_height, redis_conn, rpc_helper)
+        print(trade_volume)
+        ```
+
+    """
 
     data_source_contract_address = Web3.toChecksumAddress(
         data_source_contract_address,

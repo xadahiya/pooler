@@ -393,6 +393,24 @@ async def get_token_price_at_block_height(
 
 
 async def get_all_pairs_token_price(loop, redis_conn: aioredis.Redis = None):
+    """
+    Get the price of all pairs of tokens.
+
+    This function retrieves the price of all pairs of tokens using the Uniswap V2 Router contract. It takes in a loop and an optional Redis connection as parameters.
+
+    Parameters:
+    - loop (asyncio.AbstractEventLoop): The event loop to run the asynchronous tasks.
+    - redis_conn (aioredis.Redis, optional): The Redis connection object. Defaults to None.
+
+    Returns:
+    None
+
+    Example usage:
+    ```python
+    await get_all_pairs_token_price(loop, redis_conn)
+    ```
+
+    """
     router_contract_obj = w3.eth.contract(
         address=Web3.toChecksumAddress(
             worker_settings.contract_addresses.iuniswap_v2_router,
@@ -437,6 +455,13 @@ async def get_all_pairs_token_price(loop, redis_conn: aioredis.Redis = None):
 
 @provide_async_redis_conn_insta
 async def get_pair_tokens_price(pair, loop, redis_conn: aioredis.Redis = None):
+    """
+    This function is used to get the price of a pair of tokens. It takes the pair address, event loop, and an optional Redis connection as input. The function first creates an instance of the router contract using the provided contract address and ABI. It then converts the pair address to a checksum address. Next, it loads rate limiter scripts from Redis and retrieves metadata for the pair of tokens using the rate limiter scripts, pair address, event loop, and Redis connection.
+
+    The function then retrieves the price of each token in the pair using the router contract object, token metadata, 'latest' block height, event loop, and Redis connection. The prices are retrieved asynchronously using the `asyncio.gather` function.
+
+    After retrieving the prices, the function prints the token symbols and their corresponding prices. Finally, it closes the Redis connection.
+    """
     router_contract_obj = w3.eth.contract(
         address=Web3.toChecksumAddress(
             worker_settings.contract_addresses.iuniswap_v2_router,

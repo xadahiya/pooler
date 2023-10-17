@@ -35,6 +35,28 @@ app.add_middleware(
 
 @app.on_event('startup')
 async def startup_boilerplate():
+    """
+    This function is a startup event handler for a web app. It initializes and populates a Redis connection pool and sets it as a state variable in the app. It also sets the app's core settings.
+
+    Args:
+        None
+
+    Returns:
+        None
+
+    Raises:
+        None
+
+    Example:
+        ```
+        @app.on_event('startup')
+        async def startup_boilerplate():
+            app.state.aioredis_pool = RedisPoolCache(pool_size=100)
+            await app.state.aioredis_pool.populate()
+            app.state.redis_pool = app.state.aioredis_pool._aioredis_pool
+            app.state.core_settings = settings
+        ```
+    """
     app.state.aioredis_pool = RedisPoolCache(pool_size=100)
     await app.state.aioredis_pool.populate()
     app.state.redis_pool = app.state.aioredis_pool._aioredis_pool
@@ -47,6 +69,26 @@ async def create_update_user(
     user_cu_request: AppOwnerModel,
     response: Response,
 ):
+    """
+    Creates or updates a user in the application.
+
+    Args:
+        request (Request): The incoming request object.
+        user_cu_request (AppOwnerModel): The user details to create or update.
+        response (Response): The outgoing response object.
+
+    Returns:
+        dict: A dictionary indicating the success of the operation. If the operation is successful, the dictionary will have a key 'success' with a value of True. Otherwise, the dictionary will have a key 'success' with a value of False.
+
+    Raises:
+        None.
+
+    Note:
+        - This function assumes that a Redis connection pool is available in the application's state.
+        - The function uses Redis to store user details and maintain a set of all users.
+        - If the user is being created for the first time, the 'next_reset_at' field of the user details will be set to the current timestamp plus 86400 seconds (24 hours).
+        - If an error occurs during the operation, an exception will be logged and the function will return a dictionary with 'success' set to False.
+    """
     redis_conn: aioredis.Redis = request.app.state.redis_pool
     try:
         await redis_conn.sadd(
@@ -63,7 +105,7 @@ async def create_update_user(
             name=user_details_htable(user_cu_request.email),
             mapping=user_details,
         )
-    except Exception as e:
+except Exception as e:
         api_logger.opt(exception=True).error('{}', e)
         return {'success': False}
     else:
@@ -77,6 +119,35 @@ async def add_api_key(
     request: Request,
     response: Response,
 ):
+    """
+    Adds an API key for a user.
+    
+    Args:
+        api_key_request (AddApiKeyRequest): The request object containing the API key to be added.
+        email (str): The email of the user.
+        request (Request): The request object.
+        response (Response): The response object.
+    
+    Returns:
+        dict: A dictionary with the following keys:
+            - success (bool): Indicates if the API key was added successfully.
+            - error (str): The error message if the user does not exist.
+    
+    Raises:
+        None
+    
+    Example:
+        >>> api_key_request = AddApiKeyRequest(api_key='1234567890')
+        >>> email = 'example@example.com'
+        >>> request = Request()
+        >>> response = Response()
+        >>> add_api_key(api_key_request, email, request, response)
+        {'success': True}
+    
+    Note:
+        This function requires a Redis connection to be available in the application state.
+    
+    """
     redis_conn: aioredis.Redis = request.app.state.redis_pool
     if not await redis_conn.sismember(all_users_set(), email):
         return {'success': False, 'error': 'User does not exists'}
@@ -96,6 +167,36 @@ async def revoke_api_key(
     request: Request,
     response: Response,
 ):
+    """
+    
+    Revoke API key for a user.
+    
+    This route is used to revoke an API key for a specific user. The API key is provided in the `api_key_request` parameter, and the user's email is provided in the `email` path parameter.
+    
+    Parameters:
+    - `api_key_request` (AddApiKeyRequest): The request object containing the API key to be revoked.
+    - `email` (str): The email of the user for whom the API key should be revoked.
+    - `request` (Request): The HTTP request object.
+    - `response` (Response): The HTTP response object.
+    
+    Returns:
+    - A dictionary with the following keys:
+      - `success` (bool): Indicates whether the API key was successfully revoked.
+      - `error` (str): If `success` is False, this contains an error message explaining the reason for failure.
+    
+    Example:
+    ```
+    {
+        "success": True
+    }
+    ```
+    
+    Note:
+    - If the user does not exist, the function will return `{'success': False, 'error': 'User does not exist'}`.
+    - If the API key is not active, the function will return `{'success': False, 'error': 'API key not active'}`.
+    - If the API key has already been revoked, the function will return `{'success': False, 'error': 'API key already revoked'}`.
+    
+    """
     redis_conn: aioredis.Redis = request.app.state.redis_pool
     if not await redis_conn.sismember(all_users_set(), email):
         return {'success': False, 'error': 'User does not exists'}
@@ -124,6 +225,27 @@ async def get_user_details(
     response: Response,
     email: str,
 ):
+    """
+    
+    Retrieves the details of a user based on their email address.
+    
+    Parameters:
+        - request (Request): The incoming request object.
+        - response (Response): The outgoing response object.
+        - email (str): The email address of the user.
+    
+    Returns:
+        - dict: A dictionary containing the user details if the user exists, 
+                otherwise a dictionary with 'success' set to False and an error message.
+    
+    The function retrieves the user details from a Redis database using the provided email address. 
+    If the user does not exist, it returns a dictionary with 'success' set to False and an error message. 
+    If the user exists, it retrieves the active and revoked API keys associated with the user and returns 
+    a dictionary with 'success' set to True and the user details along with the active and revoked API keys.
+    
+    Note: This function is an asynchronous function and should be awaited when called.
+    
+    """
     redis_conn: aioredis.Redis = request.app.state.redis_pool
 
     all_details = await redis_conn.hgetall(name=user_details_htable(email))
@@ -152,6 +274,25 @@ async def get_all_users(
     request: Request,
     response: Response,
 ):
+    """
+    
+    Get all users from the Redis database.
+    
+    Args:
+        request (Request): The incoming request object.
+        response (Response): The outgoing response object.
+    
+    Returns:
+        dict: A dictionary containing the success status and the list of all users.
+    
+    Example:
+        >>> get_all_users(request, response)
+        {
+            'success': True,
+            'data': ['user1', 'user2', 'user3']
+        }
+    
+    """
     redis_conn: aioredis.Redis = request.app.state.redis_pool
     all_users = await redis_conn.smembers(all_users_set())
     return {

@@ -19,6 +19,16 @@ class AggreagateTradeVolumeProcessor(GenericProcessorSingleProjectAggregate):
     transformation_lambdas = None
 
     def __init__(self) -> None:
+        """
+    Initializes an instance of the AggregateTradeVolumeProcessor7d class.
+
+    Args:
+        None
+
+    Attributes:
+        transformation_lambdas (list): A list to store transformation lambdas.
+        _logger (Logger): A logger object for logging module information.
+    """
         self.transformation_lambdas = []
         self._logger = logger.bind(module='AggregateTradeVolumeProcessor7d')
 
@@ -27,6 +37,17 @@ class AggreagateTradeVolumeProcessor(GenericProcessorSingleProjectAggregate):
         previous_aggregate_snapshot: UniswapTradesAggregateSnapshot,
         current_snapshot: UniswapTradesAggregateSnapshot,
     ):
+        """
+    Adds the values of the current snapshot to the corresponding values of the previous aggregate snapshot.
+
+    Args:
+        previous_aggregate_snapshot (UniswapTradesAggregateSnapshot): The previous aggregate snapshot.
+        current_snapshot (UniswapTradesAggregateSnapshot): The current snapshot.
+
+    Returns:
+        UniswapTradesAggregateSnapshot: The updated previous aggregate snapshot with the values of the current snapshot added.
+
+    """
 
         previous_aggregate_snapshot.totalTrade += current_snapshot.totalTrade
         previous_aggregate_snapshot.totalFee += current_snapshot.totalFee
@@ -42,6 +63,9 @@ class AggreagateTradeVolumeProcessor(GenericProcessorSingleProjectAggregate):
         previous_aggregate_snapshot: UniswapTradesAggregateSnapshot,
         current_snapshot: UniswapTradesAggregateSnapshot,
     ):
+        """
+    Removes the values of a given `UniswapTradesAggregateSnapshot` object from another `UniswapTradesAggregateSnapshot` object. The function subtracts the trade count, fee, trade volume of token0, trade volume of token1, trade volume of token0 in USD, and trade volume of token1 in USD from the corresponding values in the `current_snapshot` object and updates the values in the `previous_aggregate_snapshot` object. The updated `previous_aggregate_snapshot` object is then returned.
+    """
 
         previous_aggregate_snapshot.totalTrade -= current_snapshot.totalTrade
         previous_aggregate_snapshot.totalFee -= current_snapshot.totalFee
@@ -63,6 +87,42 @@ class AggreagateTradeVolumeProcessor(GenericProcessorSingleProjectAggregate):
         project_id: str,
 
     ):
+        """
+
+    Computes a 7-day trade volume aggregate snapshot for a given project.
+
+    Args:
+        msg_obj (PowerloomSnapshotSubmittedMessage): The message object containing information about the snapshot.
+        redis (aioredis.Redis): The Redis connection object.
+        rpc_helper (RpcHelper): The helper object for making RPC calls.
+        anchor_rpc_helper (RpcHelper): The helper object for making anchor RPC calls.
+        ipfs_reader (AsyncIPFSClient): The IPFS client object for reading data.
+        protocol_state_contract: The protocol state contract.
+        project_id (str): The ID of the project.
+
+    Returns:
+        UniswapTradesAggregateSnapshot: The computed aggregate snapshot.
+
+    Raises:
+        None.
+
+    This function computes a 7-day trade volume aggregate snapshot for a given project. It first fetches the metadata for the pair address using the `get_pair_metadata` function. Then, it creates an instance of `UniswapTradesAggregateSnapshot` with the provided epoch ID.
+
+    Next, it fetches 24-hour aggregate snapshots spaced out by 1 day over 7 days. It starts by finding the tail epoch for the current epoch ID and queues a task for fetching the 24-hour aggregate snapshot for the project ID at the currently received epoch ID. It appends this task to the `snapshot_tasks` list.
+
+    If the seek stop flag is False or the count is less than 7, it attempts to seek further back by finding the tail epoch ID and queues a task for fetching the 24-hour aggregate snapshot for the project ID at the rewinded epoch ID. This task is also appended to the `snapshot_tasks` list. The head epoch is updated to the tail epoch ID minus 1. This process continues until the seek stop flag is True or the count exceeds 7.
+
+    If the count is equal to 7, it means that the function has reached the 7-day limit for fetching the 24-hour aggregate snapshots.
+
+    All the snapshot tasks are then executed using `asyncio.gather` and the results are stored in the `all_snapshots` list.
+
+    The function then iterates over each 24-hour snapshot in `all_snapshots` and checks if it is a valid snapshot. If it is, the snapshot is parsed and added to the `aggregate_snapshot` using the `_add_aggregate_snapshot` method.
+
+    Finally, the function checks if all the snapshots are complete and if the count is less than 7. If any of these conditions are not met, the `complete` flag of the `aggregate_snapshot` is set to False.
+
+    The computed aggregate snapshot is returned as the result of the function.
+
+    """
         self._logger.info(f'Building 7 day trade volume aggregate snapshot against {msg_obj}')
 
         contract = project_id.split(':')[-2]

@@ -19,6 +19,16 @@ class AggreagateTopTokensProcessor(GenericProcessorMultiProjectAggregate):
     transformation_lambdas = None
 
     def __init__(self) -> None:
+        """
+    Initializes an instance of the AggregateTopTokensProcessor class.
+
+    Args:
+        None
+
+    Attributes:
+        transformation_lambdas (list): A list to store transformation lambdas.
+        _logger (Logger): A logger object for logging messages related to the AggregateTopTokensProcessor module.
+    """
         self.transformation_lambdas = []
         self._logger = logger.bind(module='AggregateTopTokensProcessor')
 
@@ -33,6 +43,44 @@ class AggreagateTopTokensProcessor(GenericProcessorMultiProjectAggregate):
         project_id: str,
 
     ):
+        """
+    Computes the top tokens data for a given PowerloomCalculateAggregateMessage.
+
+    Args:
+        msg_obj (PowerloomCalculateAggregateMessage): The message object containing the necessary data for computation.
+        redis (aioredis.Redis): The Redis connection object.
+        rpc_helper (RpcHelper): The helper object for making RPC calls.
+        anchor_rpc_helper (RpcHelper): The helper object for making anchor RPC calls.
+        ipfs_reader (AsyncIPFSClient): The IPFS client object for reading data.
+        protocol_state_contract: The contract for protocol state.
+        project_id (str): The ID of the project.
+
+    Returns:
+        UniswapTopTokensSnapshot: The snapshot object containing the top tokens data.
+
+    Note:
+        This function calculates the top tokens data by iterating over all the snapshots and generating token data. It uses the provided message object, Redis connection, RPC helpers, IPFS client, protocol state contract, and project ID to fetch the necessary data and perform the calculations. The computed top tokens data is returned as a UniswapTopTokensSnapshot object.
+
+    Example:
+        msg_obj = PowerloomCalculateAggregateMessage(...)
+        redis = aioredis.Redis(...)
+        rpc_helper = RpcHelper(...)
+        anchor_rpc_helper = RpcHelper(...)
+        ipfs_reader = AsyncIPFSClient(...)
+        protocol_state_contract = ...
+        project_id = "example_project_id"
+
+        result = await compute(
+            msg_obj,
+            redis,
+            rpc_helper,
+            anchor_rpc_helper,
+            ipfs_reader,
+            protocol_state_contract,
+            project_id,
+        )
+
+    """
 
         self._logger.info(f'Calculating top tokens data for {msg_obj}')
         epoch_id = msg_obj.epochId

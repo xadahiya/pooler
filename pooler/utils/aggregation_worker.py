@@ -32,6 +32,29 @@ class AggregationAsyncWorker(GenericAsyncWorker):
     _ipfs_reader_client: AsyncIPFSClient
 
     def __init__(self, name, **kwargs):
+        """
+    This function is the constructor for the class `AggregationAsyncWorker`. It initializes various attributes and sets up the configuration for aggregation.
+
+    Parameters:
+    - `name` (str): The name of the worker.
+    - `**kwargs` (dict): Additional keyword arguments.
+
+    Attributes:
+    - `_q` (str): The name of the RabbitMQ queue for backend aggregation.
+    - `_rmq_routing` (str): The RabbitMQ routing key for backend callbacks.
+    - `_project_calculation_mapping` (None): Mapping of project types to calculations.
+    - `_initialized` (bool): Flag indicating if the worker has been initialized.
+    - `_single_project_types` (set): Set of project types for single project aggregation.
+    - `_multi_project_types` (set): Set of project types for multi-project aggregation.
+    - `_task_types` (set): Set of all project types.
+    - `_ipfs_singleton` (None): Singleton instance of IPFS.
+
+    Configuration:
+    - The function iterates over the `aggregator_config` list and sets up the configuration for aggregation based on the `aggregate_on` attribute of each config object. If `aggregate_on` is `AggregateOn.single_project`, the `project_type` is added to the `_single_project_types` set. If `aggregate_on` is `AggregateOn.multi_project`, the `project_type` is added to the `_multi_project_types` set. The `project_type` is also added to the `_task_types` set.
+
+    Note:
+    - This function should be called when creating an instance of `AggregationAsyncWorker`.
+    """
         self._q = f'powerloom-backend-cb-aggregate:{settings.namespace}:{settings.instance_id}'
         self._rmq_routing = f'powerloom-backend-callback:{settings.namespace}'
         f':{settings.instance_id}:CalculateAggregate.*'
@@ -109,11 +132,38 @@ class AggregationAsyncWorker(GenericAsyncWorker):
             raise e
 
     def _gen_single_type_project_id(self, type_, epoch):
+        """
+    Generates a project ID for a single type of project.
+
+    Args:
+        type_ (str): The type of the project.
+        epoch (Epoch): The epoch object containing the project ID.
+
+    Returns:
+        str: The generated project ID.
+    """
         contract = epoch.projectId.split(':')[-2]
         project_id = f'{type_}:{contract}:{settings.namespace}'
         return project_id
 
     def _gen_multiple_type_project_id(self, type_, epoch):
+        """
+    Generates a unique project ID based on the given type and epoch.
+
+    Args:
+        type_ (str): The type of the project.
+        epoch (Epoch): The epoch object containing the project messages.
+
+    Returns:
+        str: The generated project ID.
+
+    Example:
+        ```
+        type_ = "example"
+        epoch = Epoch(messages=[project1, project2, project3])
+        project_id = _gen_multiple_type_project_id(type_, epoch)
+        ```
+    """
 
         underlying_project_ids = [project.projectId for project in epoch.messages]
         unique_project_id = ''.join(sorted(underlying_project_ids))
@@ -124,6 +174,19 @@ class AggregationAsyncWorker(GenericAsyncWorker):
         return project_id
 
     def _gen_project_id(self, type_, epoch):
+        """
+    Generates a project ID based on the given type and epoch.
+
+    Args:
+        type_ (str): The type of the project.
+        epoch (int): The epoch of the project.
+
+    Returns:
+        str: The generated project ID.
+
+    Raises:
+        ValueError: If the given project type is unknown.
+    """
         if type_ in self._single_project_types:
             return self._gen_single_type_project_id(type_, epoch)
         elif type_ in self._multi_project_types:
@@ -137,6 +200,29 @@ class AggregationAsyncWorker(GenericAsyncWorker):
         epoch: Union[PowerloomSnapshotSubmittedMessage, PowerloomCalculateAggregateMessage],
         snapshot: Union[AggregateBase, None],
     ):
+        """
+    Sends the payload of a commit to the service queue for the audit protocol.
+
+    Args:
+        audit_stream: The audit stream associated with the commit.
+        epoch: The epoch for which the commit is being made. Can be either a PowerloomSnapshotSubmittedMessage or a PowerloomCalculateAggregateMessage.
+        snapshot: The aggregate snapshot to be committed. Can be None if no snapshot is available.
+
+    Raises:
+        None
+
+    Returns:
+        None
+
+    Notes:
+        - If no snapshot is available, an error message is logged.
+        - The source chain details are obtained using the get_source_chain_id function.
+        - The payload is converted to a dictionary using the snapshot's dict() method.
+        - The project ID is generated using the _gen_project_id method.
+        - The commit payload message is created using the PayloadCommitMessage class.
+        - The message is sent through RabbitMQ to the commit payload queue.
+        - If an exception occurs during the process, an error message is logged.
+    """
 
         if not snapshot:
             self._logger.error(
@@ -213,6 +299,23 @@ class AggregationAsyncWorker(GenericAsyncWorker):
         task_type,
         transformation_lambdas: List[Callable],
     ):
+        """
+    This function maps processed epochs to adapters based on the given parameters. It takes in a message object, a callback function, a task type, and a list of transformation lambdas. It generates a project ID based on the task type and message object. Then, it calls the callback function asynchronously with the necessary parameters and stores the result. If there are transformation lambdas provided, it applies each lambda to the result. Finally, it returns the result.
+
+    If any exception occurs during the process, it logs an error message and raises the exception.
+
+    Parameters:
+    - `msg_obj` (Union[PowerloomSnapshotSubmittedMessage, PowerloomCalculateAggregateMessage]): The message object containing information about the snapshot or aggregate calculation.
+    - `cb_fn_async` (Callable): The callback function to be called asynchronously.
+    - `task_type` (Any): The type of task being processed.
+    - `transformation_lambdas` (List[Callable]): A list of transformation lambdas to be applied to the result.
+
+    Returns:
+    - The result of the callback function and the applied transformation lambdas.
+
+    Raises:
+    - Any exception that occurs during the process.
+    """
 
         try:
 
@@ -234,18 +337,45 @@ class AggregationAsyncWorker(GenericAsyncWorker):
 
             return result
 
-        except Exception as e:
-            self._logger.opt(exception=True).error(
-                (
-                    'Error while processing aggregate {} for callback processor'
-                    ' of type {}'
-                ),
-                msg_obj,
-                task_type,
-            )
-            raise e
+    except Exception as e:
+        self._logger.opt(exception=True).error(
+            (
+                'Error while processing aggregate {} for callback processor'
+                ' of type {}'
+            ),
+            msg_obj,
+            task_type,
+        )
+        raise e
 
     async def _on_rabbitmq_message(self, message: IncomingMessage):
+        """
+
+    Handles incoming RabbitMQ messages and processes them based on their task type.
+
+    Args:
+        message (IncomingMessage): The incoming RabbitMQ message.
+
+    Returns:
+        None
+
+    Raises:
+        None
+
+    Notes:
+        - This function is an asynchronous function.
+        - The task type is extracted from the routing key of the message.
+        - If the task type is not supported, the function returns without processing the message.
+        - The message is acknowledged to RabbitMQ.
+        - The function initializes necessary resources before processing the message.
+        - If the task type is a single project type, the message body is parsed into a PowerloomSnapshotSubmittedMessage object.
+        - If the task type is a multi project type, the message body is parsed into a PowerloomCalculateAggregateMessage object.
+        - If the message structure is invalid, an error is logged and the function returns.
+        - If the task type is unknown, an error is logged and the function returns.
+        - The processed message is passed to the _processor_task function for further processing.
+
+
+    """
         task_type = message.routing_key.split('.')[-1]
         if task_type not in self._task_types:
             return
@@ -306,6 +436,15 @@ class AggregationAsyncWorker(GenericAsyncWorker):
         asyncio.ensure_future(self._processor_task(msg_obj=msg_obj, task_type=task_type))
 
     async def _init_project_calculation_mapping(self):
+        """
+    Initializes the project calculation mapping for the current instance. If the mapping is already initialized, the function returns without making any changes. Otherwise, it creates an empty dictionary to store the mapping.
+
+    The function then iterates over the aggregator_config list and retrieves the project type from each project_config object. It checks if the project type already exists in the mapping dictionary. If it does, an exception is raised indicating a duplicate project type. Otherwise, it imports the module specified in the project_config object and retrieves the class specified by the class_name attribute. It then adds an entry to the mapping dictionary with the project type as the key and an instance of the retrieved class as the value.
+
+    Next, the function iterates over the projects_config list and performs the same steps as above to add entries to the mapping dictionary.
+
+    Note: This function assumes that the aggregator_config and projects_config lists are defined and accessible within the scope of the function.
+    """
         if self._project_calculation_mapping is not None:
             return
 
@@ -326,6 +465,15 @@ class AggregationAsyncWorker(GenericAsyncWorker):
             self._project_calculation_mapping[key] = class_()
 
     async def _init_ipfs_client(self):
+        """
+    Initializes the IPFS client for the current instance.
+
+    If the IPFS singleton instance does not exist, it creates a new instance of the `AsyncIPFSClientSingleton` class using the IPFS settings specified in the application settings. It then initializes the sessions for the IPFS singleton instance.
+
+    The IPFS writer client and IPFS reader client are set to the corresponding clients of the IPFS singleton instance.
+
+    This function should be called before using any IPFS-related functionality in the application.
+    """
         if not self._ipfs_singleton:
             self._ipfs_singleton = AsyncIPFSClientSingleton(settings.ipfs)
             await self._ipfs_singleton.init_sessions()
@@ -333,6 +481,9 @@ class AggregationAsyncWorker(GenericAsyncWorker):
             self._ipfs_reader_client = self._ipfs_singleton._ipfs_read_client
 
     async def init(self):
+        """
+    Initializes the necessary components for the application. If the application has not been initialized yet, it initializes the Redis pool, the HTTPX client, the RPC helper, the project calculation mapping, and the IPFS client. Once all the components have been initialized, it sets the `_initialized` flag to True.
+    """
         if not self._initialized:
             await self._init_redis_pool()
             await self._init_httpx_client()

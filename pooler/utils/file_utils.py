@@ -29,7 +29,8 @@ def read_json_file(
     else:
         json_data = json.load(f_)
         if type(json_data) != dict:
-            # logger.warning(f'Upon JSON decoding File {file_path}, content does not contain a dictionary. Actual content: {json_data}')
+            # logger.warning(f'Upon JSON decoding File {file_path}, content does not
+            # contain a dictionary. Actual content: {json_data}')
             while type(json_data) != dict and type(json_data) == str:
                 json_data = json.loads(json_data)
         return json_data
@@ -41,12 +42,33 @@ def write_json_file(
     data: Any,
     logger: logger = logger,
 ) -> None:
+    """
+
+    Writes data to a JSON file.
+
+    Args:
+        directory (str): The directory where the file will be saved.
+        file_name (str): The name of the file.
+        data (Any): The data to be written to the file.
+        logger (logger, optional): The logger object for logging errors. Defaults to logger.
+
+    Raises:
+        Exception: If there is an error while writing to the file.
+
+    Returns:
+        None
+
+    The function creates the specified directory if it does not exist and opens a file in write mode. It then writes the data to the file in JSON format with indentation of 4 spaces. If there is an error while writing to the file, it logs an error message using the provided logger object and raises an exception.
+
+    """
     try:
         file_path = os.path.join(directory, file_name)
         if not os.path.exists(directory):
             os.makedirs(directory)
         f_ = open(file_path, 'w', encoding='utf-8')
-    except Exception as exc:
+
+
+except Exception as exc:
         logger.error(f'Unable to write to file {file_path}')
         raise exc
     else:
@@ -54,12 +76,31 @@ def write_json_file(
 
 
 def write_bytes_to_file(directory: str, file_name: str, data):
+    """
+    
+    Writes bytes to a file in the specified directory.
+    
+    Args:
+        directory (str): The directory where the file will be created.
+        file_name (str): The name of the file.
+        data: The bytes to be written to the file.
+    
+    Raises:
+        Exception: If there is an error opening the file.
+    
+    Returns:
+        None
+    
+    Example:
+        write_bytes_to_file('/path/to/directory/', 'example.txt', b'Hello, World!')
+    
+    """
     try:
         file_path = directory + file_name
         if not os.path.exists(directory):
             os.makedirs(directory)
         file_obj = open(file_path, 'wb')
-    except Exception as exc:
+except Exception as exc:
         logger.opt(exception=True).error('Unable to open the {} file', file_path)
         raise exc
     else:

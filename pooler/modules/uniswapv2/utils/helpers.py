@@ -18,6 +18,27 @@ helper_logger = logger.bind(module='PowerLoom|Uniswap|Helpers')
 
 
 def get_maker_pair_data(prop):
+    """
+    Return data related to a Maker pair.
+
+    Args:
+        prop (str): The property of the Maker pair to retrieve data for.
+
+    Returns:
+        str: The data related to the Maker pair.
+
+    Raises:
+        None.
+
+    Examples:
+        >>> get_maker_pair_data('name')
+        'Maker'
+        >>> get_maker_pair_data('symbol')
+        'MKR'
+        >>> get_maker_pair_data('price')
+        'Maker'
+
+    """
     prop = prop.lower()
     if prop.lower() == 'name':
         return 'Maker'
@@ -34,6 +55,29 @@ async def get_pair(
     redis_conn: aioredis.Redis,
     rpc_helper: RpcHelper,
 ):
+    """
+    Get the pair address for the given tokens from the Uniswap factory contract.
+
+    Args:
+        factory_contract_obj: The Uniswap factory contract object.
+        token0: The address of the first token.
+        token1: The address of the second token.
+        redis_conn (aioredis.Redis): The Redis connection object.
+        rpc_helper (RpcHelper): The helper object for making RPC calls.
+
+    Returns:
+        str: The pair address for the given tokens.
+
+    Raises:
+        None
+
+    Notes:
+        - This function checks if the pair address is already cached in Redis. If it is, the cached address is returned.
+        - If the pair address is not cached, the function calls the `getPair` function of the factory contract to get the address.
+        - The pair address is then cached in Redis for future use.
+
+
+    """
     # check if pair cache exists
     pair_address_cache = await redis_conn.hget(
         uniswap_tokens_pair_map,
@@ -70,6 +114,41 @@ async def get_pair_metadata(
     redis_conn: aioredis.Redis,
     rpc_helper: RpcHelper,
 ):
+    """
+    Get metadata for a pair of tokens.
+
+    Args:
+        pair_address (str): The address of the pair.
+        redis_conn (aioredis.Redis): The Redis connection object.
+        rpc_helper (RpcHelper): The RpcHelper object.
+
+    Returns:
+        dict: A dictionary containing the metadata for the pair, token0, and token1. The dictionary has the following structure:
+            {
+                'token0': {
+                    'address': str,
+                    'name': str,
+                    'symbol': str,
+                    'decimals': str,
+                },
+                'token1': {
+                    'address': str,
+                    'name': str,
+                    'symbol': str,
+                    'decimals': str,
+                },
+                'pair': {
+                    'symbol': str,
+                },
+            }
+
+    Raises:
+        Exception: If there is an error while fetching the metadata.
+
+    Note:
+        This function retrieves the metadata for a pair of tokens by first checking if the metadata is cached in Redis. If the metadata is not found in the cache, it makes RPC calls to retrieve the metadata from the Ethereum network. The metadata includes the addresses, names, symbols, and decimals of the tokens in the pair, as well as the symbol of the pair itself.
+
+    """
     try:
         pair_address = Web3.toChecksumAddress(pair_address)
 
@@ -228,12 +307,12 @@ async def get_pair_metadata(
                 'symbol': f'{token0_symbol}-{token1_symbol}',
             },
         }
-    except Exception as err:
-        # this will be retried in next cycle
-        helper_logger.opt(exception=True).error(
-            (
-                f'RPC error while fetcing metadata for pair {pair_address},'
-                f' error_msg:{err}'
-            ),
-        )
-        raise err
+except Exception as err:
+    # this will be retried in next cycle
+    helper_logger.opt(exception=True).error(
+        (
+            f'RPC error while fetcing metadata for pair {pair_address},'
+            f' error_msg:{err}'
+        ),
+    )
+    raise err

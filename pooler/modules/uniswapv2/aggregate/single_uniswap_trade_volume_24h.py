@@ -18,6 +18,16 @@ class AggreagateTradeVolumeProcessor(GenericProcessorSingleProjectAggregate):
     transformation_lambdas = None
 
     def __init__(self) -> None:
+        """
+    Initializes an instance of the AggregateTradeVolumeProcessor24h class.
+
+    Args:
+        None
+
+    Attributes:
+        transformation_lambdas (list): A list to store transformation lambdas.
+        _logger (Logger): A logger object for logging module information.
+    """
         self.transformation_lambdas = []
         self._logger = logger.bind(module='AggregateTradeVolumeProcessor24h')
 
@@ -26,6 +36,18 @@ class AggreagateTradeVolumeProcessor(GenericProcessorSingleProjectAggregate):
         previous_aggregate_snapshot: UniswapTradesAggregateSnapshot,
         current_snapshot: UniswapTradesSnapshot,
     ):
+        """
+
+    Adds the values from the current snapshot to the corresponding values in the previous aggregate snapshot.
+
+    Args:
+        previous_aggregate_snapshot (UniswapTradesAggregateSnapshot): The previous aggregate snapshot to update.
+        current_snapshot (UniswapTradesSnapshot): The current snapshot containing the values to add.
+
+    Returns:
+        UniswapTradesAggregateSnapshot: The updated previous aggregate snapshot with the added values.
+
+    """
 
         previous_aggregate_snapshot.totalTrade += current_snapshot.totalTrade
         previous_aggregate_snapshot.totalFee += current_snapshot.totalFee
@@ -41,6 +63,9 @@ class AggreagateTradeVolumeProcessor(GenericProcessorSingleProjectAggregate):
         previous_aggregate_snapshot: UniswapTradesAggregateSnapshot,
         current_snapshot: UniswapTradesSnapshot,
     ):
+        """
+    Removes the data from the current snapshot from the previous aggregate snapshot. This function subtracts the trade count, fee, trade volumes, and trade volumes in USD of the current snapshot from the corresponding values in the previous aggregate snapshot. The updated previous aggregate snapshot is then returned.
+    """
 
         previous_aggregate_snapshot.totalTrade -= current_snapshot.totalTrade
         previous_aggregate_snapshot.totalFee -= current_snapshot.totalFee
@@ -61,6 +86,22 @@ class AggreagateTradeVolumeProcessor(GenericProcessorSingleProjectAggregate):
         protocol_state_contract,
         project_id: str,
     ):
+        """
+    Calculates the aggregate snapshot of Uniswap trades from scratch for a given project and epoch.
+
+    Args:
+        self: The instance of the class.
+        msg_obj (PowerloomSnapshotSubmittedMessage): The message object containing the snapshot details.
+        redis (aioredis.Redis): The Redis client for caching.
+        rpc_helper (RpcHelper): The helper class for making RPC calls.
+        anchor_rpc_helper (RpcHelper): The helper class for making anchor RPC calls.
+        ipfs_reader (AsyncIPFSClient): The IPFS client for reading data.
+        protocol_state_contract: The contract for protocol state.
+        project_id (str): The ID of the project.
+
+    Returns:
+        UniswapTradesAggregateSnapshot: The aggregate snapshot of Uniswap trades.
+    """
         self._logger.info('project_first_epoch is 0, building aggregate from scratch')
 
         # source project tail epoch
@@ -103,6 +144,35 @@ class AggreagateTradeVolumeProcessor(GenericProcessorSingleProjectAggregate):
         project_id: str,
 
     ):
+        """
+
+    Computes the trade volume aggregate snapshot for a given message object.
+
+    Args:
+        msg_obj (PowerloomSnapshotSubmittedMessage): The message object containing the snapshot details.
+        redis (aioredis.Redis): The Redis client for caching.
+        rpc_helper (RpcHelper): The RPC helper for making RPC calls.
+        anchor_rpc_helper (RpcHelper): The anchor RPC helper for making anchor RPC calls.
+        ipfs_reader (AsyncIPFSClient): The IPFS client for reading IPFS data.
+        protocol_state_contract: The protocol state contract.
+        project_id (str): The ID of the project.
+
+    Returns:
+        The trade volume aggregate snapshot.
+
+    Raises:
+        None.
+
+    Notes:
+        - This function first checks if there are any past snapshots for the project. If not, it calculates the aggregate
+          snapshot from scratch.
+        - If there are past snapshots, it checks if the epoch window is complete. If not, it adds the current snapshot to
+          the aggregate.
+        - If the epoch window is complete, it removes the tail end snapshot from the aggregate and adds the current snapshot.
+        - If the current snapshot data is not found, it calculates the aggregate snapshot from scratch.
+
+
+    """
         self._logger.info(f'Building trade volume aggregate snapshot for {msg_obj}')
 
         # aggregate project first epoch

@@ -17,6 +17,16 @@ class AggreagateTopPairsProcessor(GenericProcessorMultiProjectAggregate):
     transformation_lambdas = None
 
     def __init__(self) -> None:
+        """
+    Initializes an instance of the AggregateTopPairsProcessor class.
+
+    Args:
+        None
+
+    Attributes:
+        transformation_lambdas (list): A list to store transformation lambdas.
+        _logger (Logger): A logger object for logging messages, with the module name set to 'AggregateTopPairsProcessor'.
+    """
         self.transformation_lambdas = []
         self._logger = logger.bind(module='AggregateTopPairsProcessor')
 
@@ -31,6 +41,21 @@ class AggreagateTopPairsProcessor(GenericProcessorMultiProjectAggregate):
         project_id: str,
 
     ):
+        """
+    Calculates the 24-hour top pairs trade volume and reserves data for a given message object.
+
+    Args:
+        msg_obj (PowerloomCalculateAggregateMessage): The message object containing the necessary information for the calculation.
+        redis (aioredis.Redis): The Redis client used for data retrieval.
+        rpc_helper (RpcHelper): The helper class for making RPC calls.
+        anchor_rpc_helper (RpcHelper): The helper class for making anchor RPC calls.
+        ipfs_reader (AsyncIPFSClient): The IPFS client used for reading data.
+        protocol_state_contract: The contract for the protocol state.
+        project_id (str): The ID of the project.
+
+    Returns:
+        UniswapTopPairs24hSnapshot: The snapshot object containing the calculated top pairs data.
+    """
         self._logger.info(f'Calculating 24h top pairs trade volume and reserves data for {msg_obj}')
 
         epoch_id = msg_obj.epochId

@@ -45,15 +45,51 @@ PROC_STR_ID_TO_CLASS_MAP = {
 
 class ProcessHubCore(Process):
     def __init__(self, name, **kwargs):
+        """
+    Initializes a new instance of the class.
+
+    Args:
+        name (str): The name of the instance.
+        **kwargs: Additional keyword arguments.
+
+    Attributes:
+        _spawned_processes_map (Dict[str, Union[Process, None]]): A dictionary that maps names to spawned processes. The values can be either a Process object or None.
+        _spawned_cb_processes_map (Dict[str, Union[Process, None]]): A separate dictionary that maps names to callback worker spawns. The values can be either a Process object or None.
+        _thread_shutdown_event (threading.Event): An event object used for thread shutdown.
+        _shutdown_initiated (bool): A flag indicating whether the shutdown has been initiated.
+
+    """
         Process.__init__(self, name=name, **kwargs)
         self._spawned_processes_map: Dict[str, Union[Process, None]] = dict()
         self._spawned_cb_processes_map = (
             dict()
-        )  # separate map for callback worker spawns
+        )
+        # separate map for callback worker spawns
         self._thread_shutdown_event = threading.Event()
         self._shutdown_initiated = False
 
     def signal_handler(self, signum, frame):
+        """
+    Handles signals received by the process.
+
+    Args:
+        self (object): The instance of the class.
+        signum (int): The signal number.
+        frame (object): The current stack frame.
+
+    Returns:
+        None
+
+    Raises:
+        None
+
+    Notes:
+        - This function is called when a signal is received by the process.
+        - If the signal is SIGCHLD and the shutdown has not been initiated, it waits for the child process to change state.
+        - If the child process has continued or stopped, the function returns.
+        - If the child process has been signaled or exited, it logs a debug message and respawns the corresponding callback worker or process.
+        - If the signal is SIGINT, SIGTERM, or SIGQUIT, it sets the shutdown flag and stops the RabbitMQ interactor.
+    """
         if signum == SIGCHLD and not self._shutdown_initiated:
             pid, status = os.waitpid(
                 -1, os.WNOHANG | os.WUNTRACED | os.WCONTINUED,
@@ -68,7 +104,6 @@ class ProcessHubCore(Process):
                     ),
                     pid,
                 )
-                callback_worker_module_file = None
                 callback_worker_class = None
                 callback_worker_name = None
                 callback_worker_unique_id = None
@@ -151,6 +186,30 @@ class ProcessHubCore(Process):
             # raise GenericExitOnSignal
 
     def kill_process(self, pid: int):
+        """
+
+    Kills a process with the given process ID (pid).
+
+    Args:
+        self: The instance of the class.
+        pid (int): The process ID of the process to be killed.
+
+    Returns:
+        None
+
+    Raises:
+        None
+
+    This function kills the process with the specified process ID by sending a SIGTERM signal. If the process does not terminate within 3 seconds, it sends a SIGKILL signal to forcefully terminate it. Additionally, it waits for any callback processes and spawned processes associated with the given process ID to join.
+
+    Note:
+        - This function requires the `psutil` module to be installed.
+        - The process ID must be a valid and running process.
+
+    Example:
+        >>> kill_process(self, 1234)
+
+    """
         _logger = logger.bind(
             module=f'PowerLoom|ProcessHub|Core:{settings.namespace}-{settings.instance_id}',
         )
@@ -181,6 +240,21 @@ class ProcessHubCore(Process):
 
     @provide_redis_conn
     def internal_state_reporter(self, redis_conn: redis.Redis = None):
+        """
+    This function is used to report the internal state of a system to a Redis database. It takes a Redis connection object as an optional parameter. If no connection object is provided, it will use the default connection.
+
+    The function runs in a loop until a shutdown event is triggered. Inside the loop, it creates a dictionary called `proc_id_map` to store the process IDs of spawned processes. It iterates over the `_spawned_processes_map` dictionary and adds the process IDs to `proc_id_map`. If a process has not been spawned, it sets the process ID to -1.
+
+    Next, it creates a nested dictionary called `callback_workers` to store the process details of callback workers. It iterates over the `_spawned_cb_processes_map` dictionary and adds the worker details to `callback_workers`. The worker details include the worker's process ID and ID.
+
+    After creating the `callback_workers` dictionary, it converts it to a JSON string using the `json.dumps()` function.
+
+    Finally, it uses the Redis connection object to set the `proc_id_map` dictionary as a hash mapping in the Redis database. The key for the hash mapping is constructed using a specific naming convention.
+
+    If the shutdown event is triggered, it logs an error message and deletes the hash mapping from the Redis database.
+
+    Note: This function is decorated with `@provide_redis_conn`, which suggests that it is part of a larger codebase and requires a Redis connection to be provided.
+    """
         while not self._thread_shutdown_event.wait(timeout=2):
             proc_id_map = dict()
             for k, v in self._spawned_processes_map.items():
@@ -221,6 +295,21 @@ class ProcessHubCore(Process):
 
     @cleanup_children_procs
     def run(self) -> None:
+        """
+    This function is a method of a class and it is used to run a process hub core. It starts multiple worker processes for snapshot and aggregation tasks, and also starts a RabbitMQ consumer. The function also sets up signal handlers and starts an internal process state reporter. Finally, it raises a `SelfExitException` to indicate that the process should exit.
+
+    Here is a possible docstring for this function:
+
+    ```
+    Runs the process hub core.
+
+    This method starts multiple worker processes for snapshot and aggregation tasks, sets up signal handlers, starts an internal process state reporter, and starts a RabbitMQ consumer. It then raises a `SelfExitException` to indicate that the process should exit.
+
+    Returns:
+        None
+    ```
+
+    """
         setproctitle('PowerLoom|ProcessHub|Core')
         self._logger = logger.bind(module='PowerLoom|ProcessHub|Core')
 
@@ -302,6 +391,21 @@ class ProcessHubCore(Process):
         raise SelfExitException
 
     def callback(self, dont_use_ch, method, properties, body):
+        """
+    This function is a callback function that handles messages received from a RabbitMQ queue. It takes in several parameters including `dont_use_ch`, `method`, `properties`, and `body`. The function first acknowledges the message using the `basic_ack` method of the RabbitMQ channel. It then parses the message body as JSON and tries to create a `ProcessHubCommand` object from it. If the command is not recognized or fails validation, an error is logged and the function returns.
+
+    If the command is "stop", the function checks if the process ID or process string ID is provided. If the process ID is provided, the function kills the corresponding process. If the process string ID is provided, it checks if it is equal to "self". If it is, the function returns. Otherwise, it looks for the process ID in the core processes string map and the callback processes string map. If the process ID is found in either map, the corresponding process is killed and the map entry is set to None.
+
+    If the command is "start", the function retrieves the process details based on the process string ID from a map. It then creates a new process object or a new `Process` object depending on whether the process details include a class or a target. The process is started and its PID is logged. The process object is then added to the spawned processes map.
+
+    If the command is "restart", the function attempts to kill the process with the provided PID and starts the process with the provided process string ID.
+
+    Note: There are some TODOs in the code that need to be implemented.
+
+    The function does not return any value.
+
+    This function is typically used as a callback for handling messages received from a RabbitMQ queue in a process hub core.
+    """
         self.rabbitmq_interactor._channel.basic_ack(
             delivery_tag=method.delivery_tag,
         )

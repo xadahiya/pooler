@@ -1,9 +1,7 @@
 import asyncio
 import json
-from aiohttp import ClientTimeout, ClientSession, TCPConnector
 from eth_utils import to_checksum_address
-from web3 import Web3, AsyncHTTPProvider, HTTPProvider
-from web3.eth import AsyncEth
+from web3 import Web3, HTTPProvider
 from pooler.utils.default_logger import logger
 from pooler.settings.config import settings
 from pooler.utils.redis.redis_conn import RedisPoolCache
@@ -11,6 +9,29 @@ from pooler.utils.rpc import RpcHelper
 
 
 async def test_web3_async_call():
+    """
+    Asynchronously calls a web3 function to retrieve data from a smart contract.
+
+    Args:
+        None
+
+    Returns:
+        None
+
+    Raises:
+        None
+
+    Example:
+        ```
+        await test_web3_async_call()
+        ```
+
+    Note:
+        This function requires the `aioredis` and `web3` libraries to be installed.
+        It also assumes that the contract ABI is stored in a JSON file located at
+        'pooler/tests/static/abi/storage_contract.json'.
+
+    """
     with open('pooler/tests/static/abi/storage_contract.json') as f:
         contract_abi = json.load(f)
     aioredis_pool = RedisPoolCache()

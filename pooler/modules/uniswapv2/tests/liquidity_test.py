@@ -15,6 +15,17 @@ async def fetch_liquidityUSD_rpc(
     block_num,
     redis_conn: aioredis.Redis = None,
 ):
+    """
+    This function is used to fetch the liquidity in USD for a given pair address and block number. It requires an async Redis connection instance to be provided. The function first loads rate limiting Lua scripts using the provided Redis connection. Then, it calls the `get_pair_reserves` function to retrieve the pair reserves for the given pair address and block number. The result is stored in the `data` variable. The function then extracts the total reserves in USD from the `block_pair_total_reserves` dictionary and returns the sum of the `token0USD` and `token1USD` values.
+
+    Parameters:
+    - `pair_address` (str): The address of the pair.
+    - `block_num` (int): The block number.
+    - `redis_conn` (aioredis.Redis, optional): The async Redis connection instance. Defaults to None.
+
+    Returns:
+    - `float`: The liquidity in USD for the given pair address and block number.
+    """
     rate_limiting_lua_scripts = await load_rate_limiter_scripts(redis_conn)
     data = await get_pair_reserves(
         loop,
@@ -32,6 +43,24 @@ async def fetch_liquidityUSD_rpc(
 
 
 def fetch_liquidityUSD_graph(pair_address, block_num):
+    """
+
+    Fetches the liquidity in USD for a given pair address and block number from the Uniswap V2 API.
+
+    Args:
+        pair_address (str): The address of the pair.
+        block_num (int): The block number to fetch the liquidity from.
+
+    Returns:
+        float: The liquidity in USD for the given pair address and block number.
+
+    Raises:
+        None
+
+    Example:
+        liquidity = fetch_liquidityUSD_graph('0x1234567890abcdef', 1000000)
+
+    """
     uniswap_url = 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2'
     uniswap_payload = (
         '{"query":"{\\n pair(id: \\"' +
@@ -62,6 +91,30 @@ def fetch_liquidityUSD_graph(pair_address, block_num):
 
 
 async def compare_liquidity():
+    """
+
+    Compares the liquidity of multiple contracts using two different methods: `fetch_liquidityUSD_graph` and `fetch_liquidityUSD_rpc`.
+
+    Parameters:
+        None
+
+    Returns:
+        None
+
+    Example Usage:
+        compare_liquidity()
+
+    This function initializes two variables, `total_liquidity_usd_graph` and `total_liquidity_usd_rpc`, to keep track of the total liquidity in USD for each method. It also sets the `block_num` variable to a specific block number.
+
+    The function then creates a list of contracts and appends a contract address to it. For each contract in the list, it fetches the liquidity in USD using the `fetch_liquidityUSD_graph` function and assigns it to the `liquidity_usd_graph` variable. It also fetches the liquidity in USD using the `fetch_liquidityUSD_rpc` function asynchronously and assigns it to the `liquidity_usd_rpc` variable.
+
+    The function then prints the contract address, `liquidity_usd_graph`, `liquidity_usd_rpc`, and the difference between the two. It also updates the `total_liquidity_usd_graph` and `total_liquidity_usd_rpc` variables by adding the respective liquidity values.
+
+    Finally, the function prints the total number of contracts compared, `total_liquidity_usd_rpc`, and `total_liquidity_usd_graph`.
+
+    Note: This function assumes that the `fetch_liquidityUSD_graph` and `fetch_liquidityUSD_rpc` functions are defined elsewhere.
+
+    """
     total_liquidity_usd_graph = 0
     total_liquidity_usd_rpc = 0
     block_num = 16046250

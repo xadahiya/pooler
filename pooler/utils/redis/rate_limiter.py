@@ -52,6 +52,25 @@ SCRIPT_SET_EXPIRE = """
 
 # needs to be run only once
 async def load_rate_limiter_scripts(redis_conn: aioredis.Redis):
+    """
+
+    Loads rate limiter scripts into Redis connection.
+
+    Args:
+        redis_conn (aioredis.Redis): The Redis connection object.
+
+    Returns:
+        dict: A dictionary containing the loaded rate limiter scripts.
+            - 'script_incr_expire': The SHA of the script to increment and set expiration.
+            - 'script_clear_keys': The SHA of the script to clear keys.
+
+    Example:
+        redis_conn = aioredis.Redis()
+        scripts = await load_rate_limiter_scripts(redis_conn)
+        script_incr_expire_sha = scripts['script_incr_expire']
+        script_clear_keys_sha = scripts['script_clear_keys']
+
+    """
     script_clear_keys_sha = await redis_conn.script_load(SCRIPT_CLEAR_KEYS)
     script_incr_expire = await redis_conn.script_load(SCRIPT_INCR_EXPIRE)
     return {

@@ -21,6 +21,15 @@ logger = logger.bind(module='PowerLoom|RabbitmqHelpers')
 
 
 def log_retry_callback(retry_state: RetryCallState) -> bool:
+    """
+    This function is a callback function used in a retry mechanism. It takes a single parameter `retry_state` of type `RetryCallState` and returns a boolean value. The purpose of this function is to log the attempt number and check if the exception raised during the retry is an instance of `pika.exceptions.AMQPError` and if the number of attempts is less than 5.
+
+    Parameters:
+    - `retry_state` (RetryCallState): The retry state object containing information about the current retry attempt.
+
+    Returns:
+    - `bool`: True if the exception is an instance of `pika.exceptions.AMQPError` and the number of attempts is less than 5, False otherwise.
+    """
     print(
         'In rabbitmq reconnection helper decorator. attempt number: ',
         retry_state.attempt_number,
@@ -32,8 +41,45 @@ def log_retry_callback(retry_state: RetryCallState) -> bool:
 
 
 def resume_on_rabbitmq_fail(fn) -> Any:
+    """
+    This function is a decorator that can be used to automatically retry a function when a RabbitMQ connection fails. It wraps the given function and returns a new function that handles the retry logic.
+
+    The function takes in a single argument, `fn`, which is the function to be decorated. The decorated function is then returned.
+
+    The decorated function uses the `Retrying` class from the `tenacity` library to implement the retry logic. It sets the `reraise` parameter to `True`, which means that any exceptions raised during the retries will be re-raised after the maximum number of retries is reached.
+
+    Inside the decorated function, a `for` loop is used to iterate over the retry attempts. Each attempt is performed within a `with` statement, which ensures that any exceptions raised during the attempt are properly handled.
+
+    The `fn` function is called within each retry attempt using the `*args` and `**kwargs` syntax, which allows the decorator to work with functions that have any number of positional and keyword arguments.
+
+    The return value of the `fn` function is stored in the `ret` variable, and it is returned at the end of the decorated function.
+
+    This decorator is adapted from the examples provided in the `pika` library's repository on GitHub, specifically the asynchronous publisher and consumer examples.
+
+    Note: This function assumes that the necessary imports and setup for the RabbitMQ connection are done outside of this decorator.
+    """
     @wraps(fn)
     def wrapper(*args, **kwargs):
+        """
+    This function is a wrapper that retries the execution of a given function in case of failure. It uses the `Retrying` class from the `retrying` library to handle the retries. The function takes any number of positional and keyword arguments and passes them to the wrapped function. It returns the result of the wrapped function.
+
+    Parameters:
+    - `fn` (function): The function to be wrapped and retried.
+
+    Returns:
+    - The result of the wrapped function.
+
+    Example usage:
+    ```python
+    @retry
+    def my_function(arg1, arg2):
+        # code here
+
+    result = my_function(1, 2)
+    ```
+
+    Note: This function is typically used as a decorator for other functions or methods that need to be retried in case of failure.
+    """
         ret = None
         for attempt in Retrying(
             reraise=True,
@@ -46,10 +92,11 @@ def resume_on_rabbitmq_fail(fn) -> Any:
 
     return wrapper
 
+    # Adapted from:
+    # https://github.com/pika/pika/blob/12dcdf15d0932c388790e0fa990810bfd21b1a32/examples/asynchronous_publisher_example.py
+    # https://github.com/pika/pika/blob/12dcdf15d0932c388790e0fa990810bfd21b1a32/examples/asynchronous_consumer_example.py
 
-# Adapted from:
-# https://github.com/pika/pika/blob/12dcdf15d0932c388790e0fa990810bfd21b1a32/examples/asynchronous_publisher_example.py
-# https://github.com/pika/pika/blob/12dcdf15d0932c388790e0fa990810bfd21b1a32/examples/asynchronous_consumer_example.py
+
 class RabbitmqSelectLoopInteractor(object):
     """This is an example publisher/consumer that will handle unexpected interactions
     with RabbitMQ such as channel and connection closures.
@@ -368,6 +415,23 @@ class RabbitmqSelectLoopInteractor(object):
             self._nacked += 1
 
     def enqueue_msg_delivery(self, exchange, routing_key, msg_body):
+        """
+
+    Enqueues a message delivery by adding the message to the queued messages map.
+
+    Args:
+        self (object): The instance of the class.
+        exchange (str): The exchange to which the message will be published.
+        routing_key (str): The routing key for the message.
+        msg_body (str): The body of the message.
+
+    Note:
+        If this function is used in a multi-threaded or multi-processing context, there is a possibility of a race condition.
+        This is because the `publish_message()` function may try to read the queued messages map while it is being concurrently
+        updated by another process or thread.
+
+
+    """
         # NOTE: if used in a multi threaded/multi processing context, this will introduce a race condition given that
         #       publish_message() may try to read the queued messages map while it is being concurrently updated by
         #       another process/thread
@@ -1088,6 +1152,21 @@ class RabbitmqThreadedSelectLoopInteractor(object):
                     break
 
     def run(self):
+        """
+
+    Runs the RabbitMQ threaded select loop interactor.
+
+    This method starts a loop that continuously runs until the `_stopping` flag is set to `True`. Within the loop, it performs the following actions:
+    - Initializes the logger for the `PowerLoom|RabbitmqHelpers` module.
+    - Resets various variables related to the RabbitMQ connection and message handling.
+    - Establishes a connection to RabbitMQ using the `connect()` method.
+    - Starts the IOLoop of the connection, which blocks the execution until the loop is stopped.
+
+    Once the loop is stopped, it logs a message indicating that the RabbitMQ threaded select loop interactor has stopped.
+
+    Note: This method is typically used in the context of a Web App route or as part of a larger application.
+
+    """
         self._logger = logger.bind(module='PowerLoom|RabbitmqHelpers')
 
         while not self._stopping:
@@ -1233,6 +1312,20 @@ class RabbitmqThreadedSelectLoopInteractor(object):
 
 
 def main():
+    """
+    Connects to a RabbitMQ server and runs a select loop interactor.
+
+    Args:
+        None
+
+    Returns:
+        None
+
+    Example:
+        ```
+        main()
+        ```
+    """
     # Connect to localhost:5672 as guest with the password guest and virtual host "/" (%2F)
     example = RabbitmqSelectLoopInteractor(
         'amqp://guest:guest@localhost:5672/%2F?connection_attempts=3&heartbeat=3600',

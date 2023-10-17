@@ -17,6 +17,19 @@ class PairTotalReservesProcessor(GenericProcessorSnapshot):
     transformation_lambdas = None
 
     def __init__(self) -> None:
+        """
+    Initializes an instance of the PairTotalReservesProcessor class.
+
+    Args:
+        None
+
+    Attributes:
+        transformation_lambdas (list): A list to store transformation lambdas.
+        _logger (Logger): A logger object for logging module information.
+
+    Returns:
+        None
+    """
         self.transformation_lambdas = []
         self._logger = logger.bind(module='PairTotalReservesProcessor')
 
@@ -29,6 +42,28 @@ class PairTotalReservesProcessor(GenericProcessorSnapshot):
         rpc_helper: RpcHelper,
 
     ) -> Optional[Dict[str, Union[int, float]]]:
+        """
+    Compute the total reserves of a Uniswap pair over a specified range of block heights.
+
+    Args:
+        min_chain_height (int): The minimum block height to consider.
+        max_chain_height (int): The maximum block height to consider.
+        data_source_contract_address (str): The address of the Uniswap pair contract.
+        redis_conn (aioredis.Redis): The connection to the Redis database.
+        rpc_helper (RpcHelper): An instance of the RpcHelper class.
+
+    Returns:
+        Optional[Dict[str, Union[int, float]]]: A dictionary containing the total reserves of the Uniswap pair for token0 and token1,
+        the total reserves in USD for token0 and token1, the prices of token0 and token1, the range of block heights considered,
+        the timestamp of the latest block, and the contract address of the Uniswap pair.
+
+    Note:
+        This function assumes that the Redis database contains the necessary data for calculating the pair reserves.
+
+    Example:
+        >>> compute(1000000, 1000100, '0x1234567890abcdef', redis_conn, rpc_helper)
+
+    """
         epoch_reserves_snapshot_map_token0 = dict()
         epoch_prices_snapshot_map_token0 = dict()
         epoch_prices_snapshot_map_token1 = dict()

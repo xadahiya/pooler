@@ -8,12 +8,62 @@ logger = logger.bind(module='PowerLoom|HelperFunctions')
 
 
 def cleanup_children_procs(fn):
+    """
+
+    This function is a decorator that wraps around another function. It is used to handle exceptions that may occur during the execution of the wrapped function.
+
+    Parameters:
+    - fn: The function to be wrapped.
+
+    Returns:
+    - The wrapped function.
+
+    The wrapped function executes the wrapped function `fn` and logs a message indicating that the process hub core has finished running. If an exception occurs during the execution of `fn`, it is logged with the corresponding error message.
+
+    After handling the exception, the function waits for any spawned callback workers and spawned core workers to join. It logs messages indicating the progress of waiting for each worker to join.
+
+    Finally, it logs a message indicating that it has finished waiting for all children and exits the program.
+
+    Note: This function assumes the existence of a logger object and other variables (`logger`, `self._spawned_cb_processes_map`, `self._spawned_processes_map`, `self._reporter_thread`) that are not defined within the function.
+
+    """
+    @wraps(fn)
+    def wrapper(self, *args, **kwargs):
+        """
+    This function is a wrapper function that wraps around another function. It executes the wrapped function and logs the completion of the process. If an exception occurs during the execution, it logs the exception and waits for any spawned callback workers and core workers to join before exiting.
+
+    Parameters:
+    - `self`: The instance of the class that the function belongs to.
+    - `*args`: Variable length argument list.
+    - `**kwargs`: Arbitrary keyword arguments.
+
+    Returns:
+    - None
+
+    Raises:
+    - None
+
+    Example Usage:
+    ```python
     @wraps(fn)
     def wrapper(self, *args, **kwargs):
         try:
             fn(self, *args, **kwargs)
             logger.info('Finished running process hub core...')
         except Exception as e:
+            logger.opt(exception=True).error(
+                'Received an exception on process hub core run(): {}',
+                e,
+            )
+            # Rest of the code...
+    ```
+
+    Note: This function is designed to be used as a decorator for other functions or methods.
+    """
+        try:
+            fn(self, *args, **kwargs)
+            logger.info('Finished running process hub core...')
+    except Exception as e:
             logger.opt(exception=True).error(
                 'Received an exception on process hub core run(): {}',
                 e,
@@ -82,8 +132,48 @@ def cleanup_children_procs(fn):
 
 
 def acquire_threading_semaphore(fn):
+    """
+    
+    Acquires a threading semaphore before executing the decorated function and releases it afterwards. This decorator is used to control access to a shared resource using a semaphore.
+    
+    Parameters:
+        - fn: The function to be decorated.
+        
+    Returns:
+        - The decorated function.
+        
+    Example Usage:
+        @acquire_threading_semaphore
+        def my_function(semaphore, arg1, arg2):
+            # Function body
+            
+        my_function(semaphore, arg1, arg2)
+    
+    """
     @wraps(fn)
     def semaphore_wrapper(*args, **kwargs):
+        """
+    
+    A decorator function that wraps another function with a threading semaphore. This decorator is used to control access to a resource by acquiring and releasing a semaphore. 
+    
+    Args:
+        fn: The function to be wrapped.
+    
+    Returns:
+        The wrapped function.
+    
+    Raises:
+        Exception: If an exception occurs while executing the wrapped function.
+    
+    Example Usage:
+        @semaphore_wrapper
+        def my_function(semaphore, arg1, arg2):
+            # Code logic here
+    
+        semaphore = threading.Semaphore()
+        my_function(semaphore, arg1, arg2)
+    
+    """
         semaphore = kwargs['semaphore']
 
         logger.debug('Acquiring threading semaphore')
@@ -100,4 +190,4 @@ def acquire_threading_semaphore(fn):
     return semaphore_wrapper
 
 
-# # # END: placeholder for supporting liquidity events
+    # # # END: placeholder for supporting liquidity events

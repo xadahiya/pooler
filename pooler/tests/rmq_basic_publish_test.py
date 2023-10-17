@@ -9,6 +9,9 @@ from pooler.utils.rabbitmq_helpers import RabbitmqThreadedSelectLoopInteractor
 
 
 def interactor_wrapper_obj(rmq_q: queue.Queue):
+    """
+    This function creates an instance of the RabbitmqThreadedSelectLoopInteractor class and runs it. It takes a queue.Queue object as a parameter, which is used as the publish queue for the interactor. The interactor is responsible for interacting with RabbitMQ using a threaded select loop.
+    """
     rmq_interactor = RabbitmqThreadedSelectLoopInteractor(publish_queue=rmq_q)
     rmq_interactor.run()
 
