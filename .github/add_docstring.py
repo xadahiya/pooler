@@ -59,6 +59,8 @@ def addDocstring(filePath):
                 ],
             )
 
+            time.sleep(60)
+
             currentTime = time.time()
 
             # Extract the generated docstring from the OpenAI response
@@ -71,13 +73,13 @@ def addDocstring(filePath):
                 docstring = docstring[1:-1]
 
             # Add the function code and generated docstring to history
-            history.append({"role": "user", "content": function_code})
-            history.append(
-                {
-                    "role": "assistant",
-                    "content": docstring,
-                }
-            )
+            # history.append({"role": "user", "content": function_code})
+            # history.append(
+            #     {
+            #         "role": "assistant",
+            #         "content": docstring,
+            #     }
+            # )
 
             # Insert the generated docstring to the Function node
             if node.next and node.next.type == "comment":
