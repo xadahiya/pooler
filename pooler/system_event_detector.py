@@ -29,10 +29,6 @@ from pooler.utils.rpc import RpcHelper
 
 
 def rabbitmq_and_redis_cleanup(fn):
-    """
-    A decorator that wraps the provided function and handles cleaning up RabbitMQ and Redis resources before exiting.
-    """
-
     @wraps(fn)
     def wrapper(self, *args, **kwargs):
         try:
@@ -72,12 +68,6 @@ class EventDetectorProcess(multiprocessing.Process):
     _rabbitmq_queue: queue.Queue
 
     def __init__(self, name, **kwargs):
-        """
-        Initializes a new instance of the `EpochDetectorProcess` class.
-
-        Arguments:
-        name -- the name of the process
-        """
         multiprocessing.Process.__init__(self, name=name, **kwargs)
         self._rabbitmq_thread: threading.Thread
         self._rabbitmq_queue = queue.Queue()
@@ -137,15 +127,6 @@ class EventDetectorProcess(multiprocessing.Process):
             self._redis_conn = self._aioredis_pool._aioredis_pool
 
     async def get_events(self, from_block: int, to_block: int):
-        """Get the events from the block range.
-
-        Arguments:
-            int : from block
-            int: to block
-
-        Returns:
-            list : (type, event)
-        """
         events_log = await self.rpc_helper.get_events_logs(
             **{
                 'contract_address': self.contract_address,
@@ -200,7 +181,6 @@ class EventDetectorProcess(multiprocessing.Process):
             raise GenericExitOnSignal
 
     def _broadcast_event(self, event_type: str, event: EventBase):
-        """Broadcast event to the RabbitMQ queue and save update in redis."""
         self._logger.info('Broadcasting event: {}', event)
         brodcast_msg = (
             event.json().encode('utf-8'),

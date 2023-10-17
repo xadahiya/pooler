@@ -70,10 +70,6 @@ async def get_pair_metadata(
     redis_conn: aioredis.Redis,
     rpc_helper: RpcHelper,
 ):
-    """
-    returns information on the tokens contained within a pair contract - name, symbol, decimals of token0 and token1
-    also returns pair symbol by concatenating {token0Symbol}-{token1Symbol}
-    """
     try:
         pair_address = Web3.toChecksumAddress(pair_address)
 

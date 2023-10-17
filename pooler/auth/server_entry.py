@@ -47,9 +47,6 @@ async def create_update_user(
     user_cu_request: AppOwnerModel,
     response: Response,
 ):
-    """
-    can be used for both creating a new entity or updating an entity's information in the redis htable
-    """
     redis_conn: aioredis.Redis = request.app.state.redis_pool
     try:
         await redis_conn.sadd(

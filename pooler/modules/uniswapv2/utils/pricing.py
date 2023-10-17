@@ -37,13 +37,6 @@ async def get_token_pair_price_and_white_token_reserves(
     redis_conn,
     rpc_helper: RpcHelper,
 ):
-    """
-    Function to get:
-    1. token price based on pair reserves of both token: token0Price = token1Price/token0Price
-    2. whitelisted token reserves
-
-    We can write different function for each value, but to optimize we are reusing reserves value
-    """
     token_price_dict = dict()
     white_token_reserves_dict = dict()
 
@@ -234,9 +227,6 @@ async def get_token_price_in_block_range(
     rpc_helper: RpcHelper,
     debug_log=True,
 ):
-    """
-    returns the price of a token at a given block range
-    """
     try:
         token_price_dict = dict()
         token_address = Web3.toChecksumAddress(token_metadata['address'])

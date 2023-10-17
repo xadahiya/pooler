@@ -35,9 +35,6 @@ class ProtocolStateLoader:
     _protocol_state_query_semaphore: asyncio.BoundedSemaphore
     @acquire_bounded_semaphore
     async def _load_finalized_cids_from_contract_in_epoch_range(self, project_id, begin_epoch_id, cur_epoch_id, semaphore):
-        """
-        Fetches finalized CIDs for a project against an epoch ID range from the contract and caches them in Redis
-        """
         epoch_id_fetch_batch_size = 20
         for e in range(begin_epoch_id, cur_epoch_id + 1, epoch_id_fetch_batch_size):
             self._logger.info(
@@ -69,9 +66,6 @@ class ProtocolStateLoader:
                     )
     @acquire_bounded_semaphore
     async def _load_finalized_cids_from_contract(self, project_id, epoch_id_list, semaphore) -> Dict[int, str]:
-        """
-        Fetches finalized CIDs for a project against a given list of epoch IDs from the contract and caches them in Redis
-        """
         batch_size = 20
         self._logger.info(
             'Fetching finalized CIDs for project {} in epoch ID list: {}',

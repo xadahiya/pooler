@@ -97,9 +97,6 @@ async def get_current_epoch(
         rate_limit_auth_check,
     ),
 ):
-    """
-    This endpoint is used to fetch current epoch.
-    """
     if not (
         rate_limit_auth_dep.rate_limit_passed and
         rate_limit_auth_dep.authorized and
@@ -145,9 +142,6 @@ async def get_epoch_info(
         rate_limit_auth_check,
     ),
 ):
-    """
-    This endpoint is used to fetch epoch info for a given epoch_id.
-    """
     if not (
         rate_limit_auth_dep.rate_limit_passed and
         rate_limit_auth_dep.authorized and
@@ -192,9 +186,6 @@ async def get_project_last_finalized_epoch_info(
         rate_limit_auth_check,
     ),
 ):
-    """
-    This endpoint is used to fetch epoch info for the last finalized epoch for a given project.
-    """
     if not (
         rate_limit_auth_dep.rate_limit_passed and
         rate_limit_auth_dep.authorized and
@@ -280,9 +271,6 @@ async def get_data_for_project_id_epoch_id(
         rate_limit_auth_check,
     ),
 ):
-    """
-    This endpoint is used to fetch data for a given project_id and epoch_id.
-    """
     if not (
         rate_limit_auth_dep.rate_limit_passed and
         rate_limit_auth_dep.authorized and
@@ -336,9 +324,6 @@ async def get_finalized_cid_for_project_id_epoch_id(
         rate_limit_auth_check,
     ),
 ):
-    """
-    This endpoint is used to fetch finalized cid for a given project_id and epoch_id.
-    """
     if not (
         rate_limit_auth_dep.rate_limit_passed and
         rate_limit_auth_dep.authorized and

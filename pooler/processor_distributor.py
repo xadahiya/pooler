@@ -93,10 +93,6 @@ class ProcessorDistributor(multiprocessing.Process):
     async def _warm_up_cache_for_epoch_data(
         self, msg_obj: PowerloomSnapshotProcessMessage,
     ):
-        """
-        Function to warm up the cache which is used across all snapshot constructors
-        and/or for internal helper functions.
-        """
 
         try:
             max_chain_height = msg_obj.end
@@ -127,9 +123,6 @@ class ProcessorDistributor(multiprocessing.Process):
             PowerloomSnapshotFinalizedMessage,
         ],
     ):
-        """
-        Publishes a message to a rabbitmq queue
-        """
         try:
             async with self._rmq_connection_pool.acquire() as connection:
                 async with self._rmq_channel_pool.acquire() as channel:
