@@ -1,0 +1,6 @@
+[submodule "config"]
+	path = config
+	url = https://github.com/xadahiya/snapshotter_config
+[submodule "snapshotter/modules/pooler"]
+	path = snapshotter/modules/pooler
+	url = https://github.com/xadahiya/pooler_submodule
